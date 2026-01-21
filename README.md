@@ -1,20 +1,50 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
 
-# Run and deploy your AI Studio app
+# Dynamic Entity Manager v4
 
-This contains everything you need to run your app locally.
+Ein leistungsstarkes System zur Definition benutzerdefinierter Datentypen und zur Verwaltung verknüpfter Entitäten.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1nJdHPv25Ob4dZdT8qm7erI4Zky_em5oP
+## Voraussetzungen
 
-## Run Locally
+- **Node.js**: Version 18 oder höher wird empfohlen.
+- **Docker**: Optional für die containerisierte Bereitstellung.
 
-**Prerequisites:**  Node.js
+## Lokale Installation und Start
 
+1. **Abhängigkeiten installieren**:
+   Öffnen Sie Ihr Terminal im Projektverzeichnis und führen Sie folgenden Befehl aus:
+   ```bash
+   npm install
+   ```
+   *Dies installiert Express für das Backend.*
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+2. **Server starten**:
+   Führen Sie den Server mit Node.js aus:
+   ```bash
+   npm start
+   ```
+   *Der Server ist nun unter [http://localhost:3000](http://localhost:3000) erreichbar.*
+
+## Bereitstellung mit Docker
+
+Diese Anwendung kann einfach als Docker-Container bereitgestellt werden:
+
+1. **Docker-Image erstellen**:
+   ```bash
+   docker build -t entity-manager-v4 .
+   ```
+
+2. **Container ausführen**:
+   ```bash
+   docker run -d -p 3000:3000 --name entity-manager entity-manager-v4
+   ```
+
+## Funktionsweise
+
+- **Datenmodell**: Alle Typen und Entitäten werden in der Datei `data.xml` im Hauptverzeichnis gespeichert.
+- **Backend**: Ein leichtgewichtiger Express-Server (`server.js`) stellt die API für das Lesen und Schreiben der XML-Datei bereit.
+- **Frontend**: Eine React-SPA mit Tailwind CSS, die direkt vom Backend ausgeliefert wird.
+
+## Fehlerbehebung
+
+- **SyntaxError bei perf_hooks**: Stellen Sie sicher, dass Sie Node.js v18+ verwenden. Wenn Sie den Fehler lokal erhalten, nutzen Sie Docker, da dort automatisch die korrekte Version (Node 20) verwendet wird.
+- **Fehlende Module**: Führen Sie immer zuerst `npm install` aus, bevor Sie den Server mit `node server.js` oder `npm start` starten.
