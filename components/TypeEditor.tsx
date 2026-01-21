@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { EntityType, Attribute, AttributeType } from '../types';
+import { EntityType, Attribute, AttributeType } from '../types.ts';
 
 interface TypeEditorProps {
   types: EntityType[];

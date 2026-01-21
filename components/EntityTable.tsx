@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { AppData, Entity, EntityType, AttributeType, Attribute } from '../types';
+import { AppData, Entity, EntityType, AttributeType, Attribute } from '../types.ts';
 
 interface EntityTableProps {
   data: AppData;
@@ -133,8 +133,7 @@ const EntityTable: React.FC<EntityTableProps> = ({ data, onUpdateEntity, onDelet
                                 onBlur={() => setEditingCell(null)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleInlineSave(entity, attr.id, (e.target as HTMLInputElement).value)}
                                 onChange={(e) => {
-                                    const v = attr.type === AttributeType.INT || attr.type === AttributeType.DECIMAL ? Number(e.target.value) : e.target.value;
-                                    // Local only update for better UX before blur/enter?
+                                    // Local state management could be added here for even snappier UI
                                 }}
                             />
                         )

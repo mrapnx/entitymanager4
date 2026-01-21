@@ -1,13 +1,13 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ViewType, AppData, EntityType, Entity, AttributeType } from './types';
-import { XMLService } from './services/xmlService';
-import Sidebar from './components/Sidebar';
-import EntityCards from './components/EntityCards';
-import EntityTable from './components/EntityTable';
-import Mindmap from './components/Mindmap';
-import TypeEditor from './components/TypeEditor';
-import EntityModal from './components/EntityModal';
+import { ViewType, AppData, EntityType, Entity, AttributeType } from './types.ts';
+import { XMLService } from './services/xmlService.ts';
+import Sidebar from './components/Sidebar.tsx';
+import EntityCards from './components/EntityCards.tsx';
+import EntityTable from './components/EntityTable.tsx';
+import Mindmap from './components/Mindmap.tsx';
+import TypeEditor from './components/TypeEditor.tsx';
+import EntityModal from './components/EntityModal.tsx';
 
 const App: React.FC = () => {
   const [data, setData] = useState<AppData>({ types: [], entities: [] });

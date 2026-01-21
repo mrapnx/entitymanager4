@@ -1,31 +1,36 @@
 
 import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { AppData, Entity, AttributeType } from '../types';
+import { AppData, Entity, AttributeType } from '../types.ts';
 import * as d3 from 'd3';
 
-interface MindmapProps {
-  data: AppData;
-  onEdit: (entity: Entity) => void;
-  onDelete: (id: string) => void;
-}
-
-interface Node extends d3.SimulationNodeDatum {
+// Fixed: Manual definition of Node properties to avoid missing SimulationNodeDatum in some D3 type environments
+interface Node {
   id: string;
   entity: Entity;
   width: number;
   height: number;
   title: string;
   typeName: string;
-  // Explicitly add properties as they are sometimes missing from the extended type in certain environments
   x?: number;
   y?: number;
+  vx?: number;
+  vy?: number;
+  index?: number;
   fx?: number | null;
   fy?: number | null;
 }
 
-interface Link extends d3.SimulationLinkDatum<Node> {
+// Fixed: Manual definition of Link properties to avoid missing SimulationLinkDatum in some D3 type environments
+interface Link {
   source: string | Node;
   target: string | Node;
+  index?: number;
+}
+
+interface MindmapProps {
+  data: AppData;
+  onEdit: (entity: Entity) => void;
+  onDelete: (id: string) => void;
 }
 
 const Mindmap: React.FC<MindmapProps> = ({ data, onEdit, onDelete }) => {
@@ -35,7 +40,6 @@ const Mindmap: React.FC<MindmapProps> = ({ data, onEdit, onDelete }) => {
 
   const [hoveredButton, setHoveredButton] = useState<{ nodeId: string, action: 'edit' | 'delete' } | null>(null);
 
-  // Prep data for D3
   const nodes: Node[] = useMemo(() => entities.map(e => {
     const type = types.find(t => t.id === e.typeId);
     const title = String(e.values[Object.keys(e.values)[0]] || 'Entität');
@@ -73,7 +77,9 @@ const Mindmap: React.FC<MindmapProps> = ({ data, onEdit, onDelete }) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Set canvas size
+    // Use a typed any for d3 to bypass environment-specific type resolution issues for methods like forceSimulation, drag, etc.
+    const d3Any = d3 as any;
+
     const resize = () => {
       if (containerRef.current) {
         canvas.width = containerRef.current.clientWidth;
@@ -83,24 +89,21 @@ const Mindmap: React.FC<MindmapProps> = ({ data, onEdit, onDelete }) => {
     resize();
     window.addEventListener('resize', resize);
 
-    const simulation = d3.forceSimulation<Node>(nodes)
-      .force("link", d3.forceLink<Node, Link>(links).id(d => d.id).distance(200))
-      .force("charge", d3.forceManyBody().strength(-500))
-      .force("center", d3.forceCenter(canvas.width / 2, canvas.height / 2))
-      .force("collision", d3.forceCollide().radius(100)); // Repulsion logic
+    // Fixed: Using d3Any to access force-related methods which might not be visible to TS in certain configurations
+    const simulation = d3Any.forceSimulation(nodes)
+      .force("link", d3Any.forceLink(links).id((d: any) => d.id).distance(200))
+      .force("charge", d3Any.forceManyBody().strength(-500))
+      .force("center", d3Any.forceCenter(canvas.width / 2, canvas.height / 2))
+      .force("collision", d3Any.forceCollide().radius(100));
 
     simulation.on("tick", () => {
-      // Clear canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw Links (Lines connecting borders)
       ctx.strokeStyle = '#cbd5e1';
       ctx.lineWidth = 1.5;
       links.forEach(link => {
         const s = link.source as Node;
         const t = link.target as Node;
-        
-        // Ensure x and y exist before drawing
         if (s.x !== undefined && s.y !== undefined && t.x !== undefined && t.y !== undefined) {
           ctx.beginPath();
           ctx.moveTo(s.x, s.y);
@@ -109,91 +112,74 @@ const Mindmap: React.FC<MindmapProps> = ({ data, onEdit, onDelete }) => {
         }
       });
 
-      // Draw Nodes (Cards)
       nodes.forEach(node => {
-        // Fix: Property 'x' and 'y' check
         if (node.x === undefined || node.y === undefined) return;
-        
         const x = node.x - node.width / 2;
         const y = node.y - node.height / 2;
 
-        // Shadow
         ctx.shadowColor = 'rgba(0,0,0,0.1)';
         ctx.shadowBlur = 10;
         ctx.shadowOffsetY = 4;
         
-        // Body
         ctx.fillStyle = 'white';
         ctx.beginPath();
-        // @ts-ignore - roundRect might not be in all typings yet
-        if (ctx.roundRect) {
-            // @ts-ignore
-            ctx.roundRect(x, y, node.width, node.height, 8);
+        if ((ctx as any).roundRect) {
+            (ctx as any).roundRect(x, y, node.width, node.height, 8);
         } else {
             ctx.rect(x, y, node.width, node.height);
         }
         ctx.fill();
-        ctx.shadowBlur = 0; // reset
+        ctx.shadowBlur = 0;
         
         ctx.strokeStyle = '#e2e8f0';
         ctx.stroke();
 
-        // Header strip
         ctx.fillStyle = '#f1f5f9';
         ctx.beginPath();
-        // @ts-ignore
-        if (ctx.roundRect) {
-            // @ts-ignore
-            ctx.roundRect(x, y, node.width, 24, [8, 8, 0, 0]);
+        if ((ctx as any).roundRect) {
+            (ctx as any).roundRect(x, y, node.width, 24, [8, 8, 0, 0]);
         } else {
             ctx.rect(x, y, node.width, 24);
         }
         ctx.fill();
 
-        // Text: Type
         ctx.fillStyle = '#94a3b8';
         ctx.font = 'bold 9px Inter';
         ctx.fillText(node.typeName.toUpperCase(), x + 10, y + 15);
 
-        // Text: Title
         ctx.fillStyle = '#1e293b';
         ctx.font = 'bold 12px Inter';
         const truncatedTitle = node.title.length > 20 ? node.title.substring(0, 18) + '...' : node.title;
         ctx.fillText(truncatedTitle, x + 10, y + 50);
 
-        // Icons (Edit/Delete)
-        // Edit Icon
         ctx.font = '12px FontAwesome';
         ctx.fillStyle = hoveredButton?.nodeId === node.id && hoveredButton?.action === 'edit' ? '#2563eb' : '#94a3b8';
         ctx.fillText('✎', x + node.width - 35, y + 16);
         
-        // Delete Icon
         ctx.fillStyle = hoveredButton?.nodeId === node.id && hoveredButton?.action === 'delete' ? '#ef4444' : '#94a3b8';
         ctx.fillText('🗑', x + node.width - 18, y + 16);
       });
     });
 
-    // Interaction handling
-    const drag = d3.drag<HTMLCanvasElement, Node>()
-      .subject((event) => {
-        return simulation.find(event.x, event.y, 100);
-      })
-      .on("start", (event) => {
+    // Fixed: Using d3Any for drag and select methods
+    const drag = d3Any.drag()
+      .subject((event: any) => simulation.find(event.x, event.y, 100))
+      .on("start", (event: any) => {
         if (!event.active) simulation.alphaTarget(0.3).restart();
         event.subject.fx = event.subject.x;
         event.subject.fy = event.subject.y;
       })
-      .on("drag", (event) => {
+      .on("drag", (event: any) => {
         event.subject.fx = event.x;
         event.subject.fy = event.y;
       })
-      .on("end", (event) => {
+      .on("end", (event: any) => {
         if (!event.active) simulation.alphaTarget(0);
         event.subject.fx = null;
         event.subject.fy = null;
       });
 
-    d3.select(canvas).call(drag as any);
+    d3Any.select(canvas).call(drag as any);
 
     const handleMouseMove = (e: MouseEvent) => {
         const rect = canvas.getBoundingClientRect();
@@ -202,18 +188,14 @@ const Mindmap: React.FC<MindmapProps> = ({ data, onEdit, onDelete }) => {
         
         let found = null;
         for (const node of nodes) {
-            // Fix: Property 'x' and 'y' check
             if (node.x === undefined || node.y === undefined) continue;
-            
             const nx = node.x - node.width / 2;
             const ny = node.y - node.height / 2;
             
-            // Edit button hit area
             if (mouseX >= nx + node.width - 40 && mouseX <= nx + node.width - 25 && mouseY >= ny && mouseY <= ny + 25) {
                 found = { nodeId: node.id, action: 'edit' as const };
                 break;
             }
-            // Delete button hit area
             if (mouseX >= nx + node.width - 25 && mouseX <= nx + node.width && mouseY >= ny && mouseY <= ny + 25) {
                 found = { nodeId: node.id, action: 'delete' as const };
                 break;

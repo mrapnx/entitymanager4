@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Entity, EntityType, AttributeType } from '../types';
+import { Entity, EntityType, AttributeType } from '../types.ts';
 
 interface EntityModalProps {
   types: EntityType[];

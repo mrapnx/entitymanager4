@@ -1,5 +1,5 @@
 
-import { AppData, EntityType, Entity, AttributeType } from '../types';
+import { AppData, EntityType, Entity, AttributeType } from '../types.ts';
 
 export const XMLService = {
   save: async (data: AppData): Promise<void> => {

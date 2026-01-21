@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import { AppData, Entity, AttributeType } from '../types';
+import { AppData, Entity, AttributeType } from '../types.ts';
 
 interface EntityCardsProps {
   data: AppData;
