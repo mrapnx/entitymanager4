@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
 from flask import Flask, request, send_from_directory, jsonify
 import os
+import mimetypes
+
+# Explizite Registrierung von MIME-Typen für TypeScript-Dateien
+# Dies ist notwendig, damit der Browser sie als ausführbare Module akzeptiert.
+mimetypes.add_type('application/javascript', '.ts')
+mimetypes.add_type('application/javascript', '.tsx')
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 
