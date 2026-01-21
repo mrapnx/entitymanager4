@@ -4,12 +4,13 @@ import { Entity, EntityType, AttributeType } from '../types';
 
 interface EntityModalProps {
   types: EntityType[];
+  entities: Entity[];
   entity: Entity | null;
   onClose: () => void;
   onSave: (entity: Entity) => void;
 }
 
-const EntityModal: React.FC<EntityModalProps> = ({ types, entity, onClose, onSave }) => {
+const EntityModal: React.FC<EntityModalProps> = ({ types, entities, entity, onClose, onSave }) => {
   const [typeId, setTypeId] = useState<string>(entity?.typeId || types[0]?.id || '');
   const [values, setValues] = useState<Record<string, string | number>>(entity?.values || {});
 
@@ -17,18 +18,24 @@ const EntityModal: React.FC<EntityModalProps> = ({ types, entity, onClose, onSav
 
   useEffect(() => {
     if (!entity) {
-        // Clear values when switching types for a new entity
-        setValues({});
+      setValues({});
     }
   }, [typeId, entity]);
 
   const handleSave = () => {
     if (!typeId) return;
     onSave({
-        id: entity?.id || 'e' + Date.now(),
-        typeId,
-        values
+      id: entity?.id || 'e' + Date.now(),
+      typeId,
+      values
     });
+  };
+
+  const getEntityDisplayTitle = (e: Entity) => {
+    const type = types.find(t => t.id === e.typeId);
+    if (!type) return e.id;
+    const firstAttr = type.attributes[0];
+    return firstAttr ? String(e.values[firstAttr.id] || 'Unbenannt') : e.id;
   };
 
   return (
@@ -38,28 +45,28 @@ const EntityModal: React.FC<EntityModalProps> = ({ types, entity, onClose, onSav
             <h2 className="text-xl font-bold text-slate-800">
                 {entity ? 'Entität bearbeiten' : 'Neue Entität erstellen'}
             </h2>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
                 <i className="fas fa-times text-xl"></i>
             </button>
         </div>
         
         <div className="px-8 py-6 space-y-6 overflow-y-auto">
             <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Typ</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Typ auswählen</label>
                 <select 
                     value={typeId} 
                     onChange={(e) => setTypeId(e.target.value)}
                     disabled={!!entity}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50 font-medium"
                 >
                     {types.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-5">
                 {selectedType?.attributes.map(attr => (
-                    <div key={attr.id} className="space-y-2">
-                        <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">{attr.name}</label>
+                    <div key={attr.id} className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{attr.name}</label>
                         {attr.type === AttributeType.LINK ? (
                             <select 
                                 value={values[attr.id] || ''}
@@ -67,9 +74,13 @@ const EntityModal: React.FC<EntityModalProps> = ({ types, entity, onClose, onSav
                                 className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none"
                             >
                                 <option value="">Verknüpfung wählen...</option>
-                                {/* We can't easily filter all entities here without passing them, so we assume we have access via context or search... 
-                                    For simplicity, we'll allow selection if passed or handled via props.
-                                */}
+                                {entities
+                                  .filter(e => e.typeId === attr.targetTypeId)
+                                  .map(targetE => (
+                                    <option key={targetE.id} value={targetE.id}>
+                                        {getEntityDisplayTitle(targetE)}
+                                    </option>
+                                ))}
                             </select>
                         ) : (
                             <input 
@@ -78,7 +89,7 @@ const EntityModal: React.FC<EntityModalProps> = ({ types, entity, onClose, onSav
                                 value={values[attr.id] || ''}
                                 onChange={(e) => {
                                     const val = (attr.type === AttributeType.INT || attr.type === AttributeType.DECIMAL) 
-                                        ? Number(e.target.value) 
+                                        ? (e.target.value === '' ? '' : Number(e.target.value))
                                         : e.target.value;
                                     setValues({...values, [attr.id]: val});
                                 }}

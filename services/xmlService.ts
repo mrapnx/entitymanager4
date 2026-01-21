@@ -1,29 +1,36 @@
 
 import { AppData, EntityType, Entity, AttributeType } from '../types';
 
-const STORAGE_KEY = 'dynamic_entity_manager_v4_xml';
-
-/**
- * Simulates saving data to an XML file. 
- * Actually persists to LocalStorage as an XML string.
- */
 export const XMLService = {
-  save: (data: AppData): void => {
+  save: async (data: AppData): Promise<void> => {
     const xmlString = XMLService.toXML(data);
-    localStorage.setItem(STORAGE_KEY, xmlString);
-    console.log('Data saved as XML:', xmlString);
+    try {
+      const response = await fetch('/api/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ xml: xmlString })
+      });
+      if (!response.ok) throw new Error('Save failed');
+      console.log('Data saved to server as XML');
+    } catch (err) {
+      console.error('Persistence error:', err);
+    }
   },
 
-  load: (): AppData => {
-    const xmlString = localStorage.getItem(STORAGE_KEY);
-    if (!xmlString) return { types: [], entities: [] };
-    return XMLService.fromXML(xmlString);
+  load: async (): Promise<AppData> => {
+    try {
+      const response = await fetch('/api/data');
+      if (!response.ok) return { types: [], entities: [] };
+      const xmlString = await response.text();
+      return XMLService.fromXML(xmlString);
+    } catch (err) {
+      console.error('Load error:', err);
+      return { types: [], entities: [] };
+    }
   },
 
   toXML: (data: AppData): string => {
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<DataManager>\n';
-    
-    // Serialize Types
     xml += '  <Types>\n';
     data.types.forEach(t => {
       xml += `    <Type id="${t.id}" name="${t.name}">\n`;
@@ -33,8 +40,6 @@ export const XMLService = {
       xml += '    </Type>\n';
     });
     xml += '  </Types>\n';
-
-    // Serialize Entities
     xml += '  <Entities>\n';
     data.entities.forEach(e => {
       xml += `    <Entity id="${e.id}" typeId="${e.typeId}">\n`;
@@ -44,7 +49,6 @@ export const XMLService = {
       xml += '    </Entity>\n';
     });
     xml += '  </Entities>\n';
-
     xml += '</DataManager>';
     return xml;
   },
@@ -52,47 +56,47 @@ export const XMLService = {
   fromXML: (xmlString: string): AppData => {
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlString, "text/xml");
-    
     const types: EntityType[] = [];
     const entities: Entity[] = [];
 
     const typeNodes = xmlDoc.getElementsByTagName("Type");
     for (let i = 0; i < typeNodes.length; i++) {
       const tNode = typeNodes[i];
-      const id = tNode.getAttribute("id") || "";
-      const name = tNode.getAttribute("name") || "";
-      const attrNodes = tNode.getElementsByTagName("Attribute");
       const attributes = [];
+      const attrNodes = tNode.getElementsByTagName("Attribute");
       for (let j = 0; j < attrNodes.length; j++) {
-        const aNode = attrNodes[j];
         attributes.push({
-          id: aNode.getAttribute("id") || "",
-          name: aNode.getAttribute("name") || "",
-          type: (aNode.getAttribute("type") as AttributeType) || AttributeType.TEXT,
-          targetTypeId: aNode.getAttribute("target") || undefined
+          id: attrNodes[j].getAttribute("id") || "",
+          name: attrNodes[j].getAttribute("name") || "",
+          type: (attrNodes[j].getAttribute("type") as AttributeType) || AttributeType.TEXT,
+          targetTypeId: attrNodes[j].getAttribute("target") || undefined
         });
       }
-      types.push({ id, name, attributes });
+      types.push({
+        id: tNode.getAttribute("id") || "",
+        name: tNode.getAttribute("name") || "",
+        attributes
+      });
     }
 
     const entityNodes = xmlDoc.getElementsByTagName("Entity");
     for (let i = 0; i < entityNodes.length; i++) {
       const eNode = entityNodes[i];
-      const id = eNode.getAttribute("id") || "";
-      const typeId = eNode.getAttribute("typeId") || "";
-      const valueNodes = eNode.getElementsByTagName("Value");
       const values: Record<string, string | number> = {};
+      const valueNodes = eNode.getElementsByTagName("Value");
       for (let j = 0; j < valueNodes.length; j++) {
         const vNode = valueNodes[j];
         const attrId = vNode.getAttribute("attrId") || "";
-        const value = vNode.textContent || "";
-        // Try to parse numbers
-        const numValue = Number(value);
-        values[attrId] = isNaN(numValue) || value === "" ? value : numValue;
+        const val = vNode.textContent || "";
+        const numValue = Number(val);
+        values[attrId] = (isNaN(numValue) || val === "") ? val : numValue;
       }
-      entities.push({ id, typeId, values });
+      entities.push({
+        id: eNode.getAttribute("id") || "",
+        typeId: eNode.getAttribute("typeId") || "",
+        values
+      });
     }
-
     return { types, entities };
   }
 };
