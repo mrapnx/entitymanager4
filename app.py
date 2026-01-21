@@ -1,4 +1,4 @@
-
+# -*- coding: utf-8 -*-
 from flask import Flask, request, send_from_directory, jsonify
 import os
 
