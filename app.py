@@ -29,6 +29,9 @@ def get_data():
 def save_data():
     try:
         data = request.get_json()
+        if not data:
+            return "Keine JSON-Daten empfangen", 400
+            
         xml_content = data.get('xml')
         if not xml_content:
             return "Kein XML-Inhalt empfangen", 400
@@ -45,5 +48,5 @@ def send_static(path):
     return send_from_directory('.', path)
 
 if __name__ == '__main__':
-    # Wir nutzen Port 3000 um konsistent mit der vorherigen Version zu bleiben
+    # Flask 1.1.4 unterstützt host und port Parameter in run()
     app.run(host='0.0.0.0', port=3000, debug=False)

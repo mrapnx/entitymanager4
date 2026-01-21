@@ -1,12 +1,12 @@
 
 #!/bin/bash
 
-# Dieses Skript erstellt das Dockerfile für den Dynamic Entity Manager v4 (Python Version)
-echo "Generiere Python-basiertes Dockerfile..."
+# Dieses Skript erstellt das Dockerfile für den Dynamic Entity Manager v4 (Flask 1.1.4 Version)
+echo "Generiere Python 3.9-basiertes Dockerfile für Flask 1.1.4..."
 
 cat <<EOF > Dockerfile
-# Nutze ein offizielles Python-Runtime-Image
-FROM python:3.11-slim
+# Nutze Python 3.9 für optimale Kompatibilität mit Flask 1.1.4
+FROM python:3.9-slim
 
 # Arbeitsverzeichnis im Container festlegen
 WORKDIR /app
@@ -25,5 +25,5 @@ EXPOSE 3000
 CMD ["python", "app.py"]
 EOF
 
-echo "Dockerfile für Python wurde erfolgreich erstellt."
+echo "Dockerfile für Python 3.9 / Flask 1.1.4 wurde erfolgreich erstellt."
 chmod +x Dockerfile
