@@ -1,0 +1,5 @@
+{
+  "name": "Dynamic Entity Manager v4",
+  "description": "Ein leistungsstarkes System zur Definition benutzerdefinierter Datentypen und zur Verwaltung verknüpfter Entitäten mit Karten-, Tabellen- und Mindmap-Ansichten.",
+  "requestFramePermissions": []
+}
